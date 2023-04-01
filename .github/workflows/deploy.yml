@@ -38,6 +38,9 @@ jobs:
         id: get_version
         run: |
           echo "::set-output name=version::$(grep -E '^\[tool\.poetry\]$' -A 4 pyproject.toml | grep -E '^version' | sed 's/version = "//;s/"$//')"
+      - name: Get short SHA
+        id: slug
+        run: echo "::set-output name=sha::$(echo ${GITHUB_SHA} | cut -c1-7)"
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
@@ -46,7 +49,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha | truncate(7, '')}}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.slug.outputs.sha }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
