@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+  own-tinfoil:
+    image: ghcr.io/jag-k/own-tinfoil:latest
+    container_name: own-tinfoil
+    volumes:
+      - ./NPSdir:/nps
+      - ./TORRENTdir:/torrents
+    ports:
+      - "8080:8080"
+    environment:
+      - BOT_KEY= # optional
+      - BOT_URL=
+    restart: unless-stopped
+
+  transmission:
+    image: lscr.io/linuxserver/transmission:latest
+    container_name: transmission
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - TRANSMISSION_WEB_HOME= #optional
+      - USER= #optional
+      - PASS= #optional
+      - WHITELIST= #optional
+      - PEERPORT= #optional
+#      - HOST_WHITELIST= #optional
+    volumes:
+      - ./NPSdir:/downloads/complete
+      - ./TORRENTdir:/watch
+    ports:
+      - "9091:9091"
+      - "51413:51413"
+      - "51413:51413/udp"
+    restart: unless-stopped
