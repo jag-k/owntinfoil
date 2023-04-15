@@ -13,6 +13,9 @@ Port on Python of the OwnTinfoil project.
 
 ### How to update
 
+Maybe you need to be authorized in the GitHub Container Registry.
+More about [👉 here  👈](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic).
+
 1. Run `docker-compose pull`
 2. Run `docker-compose up -d`
 3. Enjoy!

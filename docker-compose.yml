@@ -2,7 +2,7 @@ version: '3'
 
 services:
   own-tinfoil:
-    image: ghcr.io/jag-k/own-tinfoil:latest
+    image: ghcr.io/jag-k/owntinfoil:latest
     container_name: own-tinfoil
     volumes:
       - ./NPSdir:/nps
