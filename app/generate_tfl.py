@@ -17,6 +17,8 @@ def generate_tfl_file(path: str = NPS_DIR, message: str = SUCCESS_MESSAGE) -> di
         for d in dirs:
             dirs_result.add(os.path.join(dirname, d))
         for f in files:
+            if f.endswith(".part"):
+                continue
             files_result.append(
                 {
                     "url": _normalize_path(os.path.join(dirname, f)),
