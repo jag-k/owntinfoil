@@ -8,7 +8,7 @@ from typing import Self
 
 import config
 from aiofile import async_open
-from aiohttp import BasicAuth, ClientSession, ServerDisconnectedError
+from aiohttp import BasicAuth, ClientConnectorError, ClientSession, ServerDisconnectedError
 
 
 def gen_session():
@@ -16,13 +16,11 @@ def gen_session():
 
 
 class BaseClient:
-    def __init__(self):
-        self.__post_init__()
-
-    def __post_init__(self):
+    def __init__(self, print_errors: bool = True):
         self._session = gen_session()
         self._open_count = 0
         self._open_result = None
+        self._print_errors = print_errors
 
     async def __aenter__(self):
         self._open_count += 1
@@ -41,7 +39,12 @@ class BaseClient:
                 async with session.get(url) as response:
                     return await response.text()
             except ServerDisconnectedError:
-                print(f"Server disconnected for url {url!r}!", file=sys.stderr)
+                if self._print_errors:
+                    print(f"Server disconnected for url {url!r}!", file=sys.stderr)
+                return None
+            except ClientConnectorError:
+                if self._print_errors:
+                    print(f"Can't connect to server by url {url!r}!", file=sys.stderr)
                 return None
 
 
@@ -95,8 +98,8 @@ class URL:
 
 
 class Client(BaseClient):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, print_errors: bool = True):
+        super().__init__(print_errors=print_errors)
         self._temp_cache = None
 
     async def _get_data(self) -> str | None:
