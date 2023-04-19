@@ -2,10 +2,9 @@ import asyncio
 import json
 import sys
 import warnings
-from asyncio import AbstractEventLoop
 
 from aiohttp import web
-from config import HOST, PORT
+from config import HOST, NPS_DIR, PORT
 
 from app.client import Client
 from app.generate_tfl import generate_tfl_file
@@ -28,12 +27,29 @@ async def periodic_request():
             await asyncio.sleep(0.5)
 
 
-async def run(loop: AbstractEventLoop, host: str, port: int):
+async def prepare_server(host: str, port: int) -> tuple[web.TCPSite, web.AppRunner]:
     app = web.Application()
-    app.add_routes([web.get("/", redirect), web.get("/shop.tfl", handler)])
+    app.add_routes([web.get("/", redirect), web.get("/shop.tfl", handler), web.static("/", NPS_DIR)])
     warnings.filterwarnings("ignore", category=DeprecationWarning)
-    server = await loop.create_server(app.make_handler(), host, port)
-    await asyncio.gather(server.serve_forever(), periodic_request())
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, host, port)
+    return site, runner
+
+
+async def run_server(site: web.TCPSite):
+    await site.start()
+    while True:
+        await asyncio.sleep(3600)
+
+
+async def run():
+    site, runner = await prepare_server(HOST, PORT)
+    try:
+        await asyncio.gather(run_server(site), periodic_request())
+    finally:
+        await site.stop()
+        await runner.cleanup()
 
 
 def main():
@@ -41,7 +57,7 @@ def main():
     print(f"Server started at http://{HOST}:{PORT}", file=sys.stderr)
     print("Press CTRL+C to exit", file=sys.stderr)
     try:
-        loop.run_until_complete(run(loop, HOST, PORT))
+        loop.run_until_complete(run())
     except KeyboardInterrupt:
         print("Exiting...", file=sys.stderr)
 
