@@ -4,10 +4,16 @@ import sys
 import warnings
 
 from aiohttp import web
-from config import HOST, NPS_DIR, PORT
+from aiohttp_basicauth import BasicAuthMiddleware
 
 from app.client import Client
+from app.config import HOST, HTTP_AUTH_USERS, NPS_DIR, PORT
 from app.generate_tfl import generate_tfl_file
+
+
+class BasicAuth(BasicAuthMiddleware):
+    async def check_credentials(self, username: str, password: str, request):
+        return password == HTTP_AUTH_USERS.get(username)
 
 
 async def redirect(_):
@@ -29,7 +35,15 @@ async def periodic_request():
 
 async def prepare_server(host: str, port: int) -> tuple[web.TCPSite, web.AppRunner]:
     app = web.Application()
-    app.add_routes([web.get("/", redirect), web.get("/shop.tfl", handler), web.static("/", NPS_DIR)])
+    app.add_routes(
+        [
+            web.get("/", redirect),
+            web.get("/shop.tfl", handler),
+            web.static("/", NPS_DIR, follow_symlinks=True),
+        ]
+    )
+    if HTTP_AUTH_USERS:
+        app.middlewares.append(BasicAuth())
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     runner = web.AppRunner(app)
     await runner.setup()
@@ -54,6 +68,7 @@ async def run():
 
 def main():
     loop = asyncio.get_event_loop()
+    # noinspection HttpUrlsUsage
     print(f"Server started at http://{HOST}:{PORT}", file=sys.stderr)
     print("Press CTRL+C to exit", file=sys.stderr)
     try:

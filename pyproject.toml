@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "tinfoil"
-version = "0.1.0"
+version = "0.2.0"
 description = ""
 authors = ["jag-k"]
 license = "MIT"
@@ -9,15 +9,14 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 python-dotenv = "^1.0.0"
-aiohttp = "^3.8.4"
+aiohttp = "^3.9.1"
 aiofile = "^3.8.5"
-
+aiohttp-basicauth = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
-pre-commit = "^3.0.4"
-black = {extras = ["d"], version = "^23.3.0"}
-ruff = "^0.0.260"
-
+pre-commit = "^3.5.0"
+ruff = "^0.1.6"
+ruff-lsp = "^0.0.45"
 
 [build-system]
 requires = ["poetry-core"]
@@ -40,6 +39,7 @@ exclude = '''
 
 [tool.ruff]
 line-length = 120
+preview = true
 target-version = "py311"
 exclude = ["*locales*"]
 select = [
@@ -54,3 +54,6 @@ select = [
     "PT022", # No teardown in fixture {name}, use return instead of yield
 ]
 ignore = ["E501"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F403", "F405"]

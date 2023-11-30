@@ -151,5 +151,5 @@ app/config/local.py
 NPSdir/
 TORRENTdir/
 
-docker-compose.yml
 docker-compose.local.yml
+wiki/
