@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check labels
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
           script: |
-            const { data: pullRequest } = await github.pulls.get({
+            const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
@@ -24,20 +24,20 @@ jobs:
             const hasInvalidLabel = labels.some(label => invalidLabels.includes(label));
 
             if (labels.length === 0) {
-              core.setFailed('Pull request must have at least one label');
+              core.setFailed('Pull request must have at least one label!');
             }
 
-            if (!hasInvalidLabel) {
+            if (hasInvalidLabel) {
               core.setFailed('Pull request must have an invalid label: ' + invalidLabels.join(', '));
             }
 
       - name: Check assignees
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
           script: |
-            const { data: pullRequest } = await github.pulls.get({
+            const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
@@ -48,12 +48,12 @@ jobs:
             }
 
       - name: Check draft status
-        uses: actions/github-script@v5
+        uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
           script: |
-            const { data: pullRequest } = await github.pulls.get({
+            const { data: pullRequest } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
