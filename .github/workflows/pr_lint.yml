@@ -65,7 +65,6 @@ jobs:
 
   validate-code:
     runs-on: ubuntu-latest
-
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
@@ -106,7 +105,7 @@ jobs:
           branch_name=${{ github.head_ref }}
 
           # Check if the branch name starts with "release/" and does not match the version
-          if [[ $branch_name == release/* && $branch_name != "release/${{ jobs.validate-code.outputs.version }}" ]]; then
+          if [[ $branch_name == release/* && $branch_name != "release/${{ needs.validate-code.outputs.version }}" ]]; then
             echo "Branch name does not match the version in pyproject.toml"
             exit 1
           fi

@@ -92,9 +92,9 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha
-            type=semver,pattern={{version}},value=${{ jobs.lint.outputs.version }},enabled=${{ jobs.lint.outputs.is_release }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ jobs.lint.outputs.version }},enabled=${{ jobs.lint.outputs.is_release }}
-            type=semver,pattern={{major}},value=${{ jobs.lint.outputs.version }},enabled=${{ jobs.lint.outputs.is_release }}
+            type=semver,pattern={{version}},value=${{ needs.lint.outputs.version }},enabled=${{ needs.lint.outputs.is_release }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.lint.outputs.version }},enabled=${{ needs.lint.outputs.is_release }}
+            type=semver,pattern={{major}},value=${{ needs.lint.outputs.version }},enabled=${{ needs.lint.outputs.is_release }}
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
@@ -110,19 +110,19 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: ${{ jobs.lint.outputs.is_release }}
+    if: ${{ needs.lint.outputs.is_release }}
     needs:
       - build
     steps:
       - name: Create Tag
         id: create_tag
         uses: actions/github-script@v7
-        if: ${{ jobs.lint.outputs.is_pr }}
+        if: ${{ needs.lint.outputs.is_pr }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
           script: |
-            const version = "${{ jobs.lint.outputs.version }}"
+            const version = "${{ needs.lint.outputs.version }}"
             const tagMessage = `Release version ${version}`
             github.git.createRef({
               owner: context.repo.owner,
