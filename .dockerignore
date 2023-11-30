@@ -1,9 +1,7 @@
-.env
 NPSdir
 TORRENTdir
-.editorconfig
-.gitignore
 app/config/local.py
-.dockerignore
 docker-compose.yml
 docker-compose.local.yml
+wiki/
+.*

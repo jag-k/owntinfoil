@@ -4,6 +4,7 @@ import re
 import sys
 import urllib.parse
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Self
 
 import config
@@ -11,7 +12,7 @@ from aiofile import async_open
 from aiohttp import BasicAuth, ClientConnectorError, ClientSession, ServerDisconnectedError
 
 
-def gen_session():
+def gen_session() -> ClientSession:
     return ClientSession(auth=BasicAuth("user", config.BOT_KEY))
 
 
@@ -19,10 +20,10 @@ class BaseClient:
     def __init__(self, print_errors: bool = True):
         self._session = gen_session()
         self._open_count = 0
-        self._open_result = None
+        self._open_result: ClientSession | None = None
         self._print_errors = print_errors
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> ClientSession:
         self._open_count += 1
         if self._open_count == 1:
             self._open_result = await self._session.__aenter__()
@@ -74,26 +75,27 @@ class URL:
                     print(f"Server disconnected for file {self.name!r}, retrying...", file=sys.stderr)
                     retries -= 1
             print(f"Failed to download file {self.name!r} after {original_retries} retries!", file=sys.stderr)
+            return None
 
     @staticmethod
     def normalize_name(name: str) -> str:
         return html.unescape(urllib.parse.unquote(name)).split("_&&_")[-1]
 
     @property
-    def abs_url(self):
+    def abs_url(self) -> str:
         return f"{config.BOT_URL.rstrip('/')}/{self.data_url}"
 
-    async def save_torrent(self):
+    async def save_torrent(self) -> Path | None:
         path = config.TORRENT_DIR / self.name
         data = await self.get_data()
         if not data:
             print(f"Failed to download torrent {self.name!r}! Skipping...", file=sys.stderr)
-            return
+            return None
         async with async_open(path, "wb") as file:
             await file.write(data)
         return path
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.name} ({self.abs_url})"
 
 

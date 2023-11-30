@@ -1,0 +1,111 @@
+name: PR Validation
+
+on:
+  pull_request:
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check labels
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const labels = pullRequest.labels.map(label => label.name);
+            const invalidLabels = ['feature request', 'invalid', 'question'];
+            const hasInvalidLabel = labels.some(label => invalidLabels.includes(label));
+
+            if (labels.length === 0) {
+              core.setFailed('Pull request must have at least one label!');
+            }
+
+            if (hasInvalidLabel) {
+              core.setFailed('Pull request must have an invalid label: ' + invalidLabels.join(', '));
+            }
+
+      - name: Check assignees
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            if (pullRequest.assignees.length === 0) {
+              core.setFailed('Pull request must have an assignee');
+            }
+
+      - name: Check draft status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
+          script: |
+            const { data: pullRequest } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            if (pullRequest.draft) {
+              core.setFailed('Pull request must not be a draft');
+            }
+
+  validate-code:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'poetry'
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Run Ruff
+        run: poetry run ruff check --output-format=github .
+
+      - name: Run pre-commit hooks
+        run: poetry run pre-commit run --all-files --show-diff-on-failure
+
+      - name: Get version from pyproject.toml
+        id: get_version
+        run: |
+          echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
+
+  validate-branch:
+    runs-on: ubuntu-latest
+    needs:
+      - validate-code
+
+    if: startsWith(github.head_ref, 'release/')
+    steps:
+      - name: Check branch name with version
+        run: |
+          # Extract the branch name from the GitHub context
+          branch_name=${{ github.head_ref }}
+
+          # Check if the branch name starts with "release/" and does not match the version
+          if [[ $branch_name == release/* && $branch_name != "release/${{ needs.validate-code.outputs.version }}" ]]; then
+            echo "Branch name does not match the version in pyproject.toml"
+            exit 1
+          fi

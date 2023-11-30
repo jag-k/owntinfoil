@@ -12,7 +12,7 @@ SUCCESS_MESSAGE: str = (
     "before tinfoil shops and absolutely free!"
 )
 
-HOST: str = "0.0.0.0"
+HOST: str = "0.0.0.0"  # noqa: S104
 PORT: int = 8080
 
 __all__ = (

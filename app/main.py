@@ -12,15 +12,15 @@ from app.generate_tfl import generate_tfl_file
 
 
 class BasicAuth(BasicAuthMiddleware):
-    async def check_credentials(self, username: str, password: str, request):
+    async def check_credentials(self, username: str, password: str, request):  # noqa: PLR6301
         return password == HTTP_AUTH_USERS.get(username)
 
 
-async def redirect(_):
+async def redirect(_: web.Request) -> web.Response:
     return web.HTTPFound("/shop.tfl")
 
 
-async def handler(_):
+async def handler(_: web.Request) -> web.Response:
     data = json.dumps(generate_tfl_file())
     return web.Response(text=data, content_type="application/json", charset="utf-8")
 
@@ -40,7 +40,7 @@ async def prepare_server(host: str, port: int) -> tuple[web.TCPSite, web.AppRunn
             web.get("/", redirect),
             web.get("/shop.tfl", handler),
             web.static("/", NPS_DIR, follow_symlinks=True),
-        ]
+        ],
     )
     if HTTP_AUTH_USERS:
         app.middlewares.append(BasicAuth())

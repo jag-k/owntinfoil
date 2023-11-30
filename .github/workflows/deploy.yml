@@ -9,64 +9,141 @@ on:
     branches: [ "main" ]
     tags:
       - "v*.*.*"
+  pull_request:
+    types: [ closed ]
+    branches:
+      - 'release/*.*.*'
   workflow_dispatch:
 
 permissions:
   contents: write
   packages: write
+  pull-requests: write
 
 jobs:
-  build:
+  lint:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      packages: write
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
+      is_pr: ${{ steps.release.outputs.is_pr == 'true'}}
+      is_tag: ${{ steps.release.outputs.is_tag == 'true'}}
+      is_release: ${{ steps.release.outputs.is_release == 'true'}}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'poetry'
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Get version from pyproject.toml
+        id: get_version
+        run: |
+          echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
+
+      - name: Is it a releasable?
+        id: release
+        run: |
+          is_pr="${{ github.event_name == 'pull_request' && github.event.pull_request.merged == true }}"
+          is_tag="${{ startsWith(github.ref, 'refs/tags/') }}"
+          [[ "$is_pr" == "true" || "$is_tag" == "true" ]] && is_release=true || is_release=false
+
+          echo "is_pr=$is_pr" >> $GITHUB_OUTPUT
+          echo "is_tag=$is_tag" >> $GITHUB_OUTPUT
+          echo "is_release=$is_release" >> $GITHUB_OUTPUT
+
+      - name: Run Ruff
+        run: poetry run ruff check --output-format=github .
+
+      - name: Run pre-commit hooks
+        run: poetry run pre-commit run --all-files --show-diff-on-failure
+
+
+  build:
+    needs:
+      - lint
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get version from pyproject.toml
-        id: get_version
-        run: |
-          echo "version=$(grep -E '^\[tool\.poetry\]$' -A 4 pyproject.toml | grep -E '^version' | sed 's/version = "//;s/"$//')" >> $GITHUB_OUTPUT
-
-      - name: Get short SHA
-        id: slug
-        run: echo "sha=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          tags: |
+            type=ref,event=branch
+            type=sha
+            type=semver,pattern={{version}},value=${{ needs.lint.outputs.version }},enabled=${{ needs.lint.outputs.is_release }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ needs.lint.outputs.version }},enabled=${{ needs.lint.outputs.is_release }}
+            type=semver,pattern={{major}},value=${{ needs.lint.outputs.version }},enabled=${{ needs.lint.outputs.is_release }}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
+        id: docker_build
         uses: docker/build-push-action@v3
         with:
           context: .
           push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.slug.outputs.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}
+          tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+
+  release:
+    runs-on: ubuntu-latest
+    if: ${{ needs.lint.outputs.is_release }}
+    needs:
+      - build
+    steps:
+      - name: Create Tag
+        id: create_tag
+        uses: actions/github-script@v7
+        if: ${{ needs.lint.outputs.is_pr }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
+          script: |
+            const version = "${{ needs.lint.outputs.version }}"
+            const tagMessage = `Release version ${version}`
+            github.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/v${version}`,
+              sha: context.sha
+            })
+            github.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${version}`,
+              name: `v${version}`,
+              body: tagMessage
+            })
+
       - name: Release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/')
+
         with:
           body: |
-            Docker image: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}`
+            Docker image: [`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}`](https://github.com/jag-k/owntinfoil/pkgs/container/owntinfoil/${{ steps.docker_build.outputs }}?tag=${{ steps.get_version.outputs.version }})
           tag_name: v${{ steps.get_version.outputs.version }}
           generate_release_notes: true
           append_body: true
-          token: ${{ secrets.RELEASE_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
