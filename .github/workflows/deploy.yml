@@ -7,6 +7,8 @@ env:
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
 
 permissions:
@@ -56,11 +58,12 @@ jobs:
 
       - name: Release
         uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
         with:
           body: |
             Release ${{ steps.get_version.outputs.version }}
 
             Docker image: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}`
-          tag_name: ${{ steps.get_version.outputs.version }}
+          tag_name: v${{ steps.get_version.outputs.version }}
           generate_release_notes: true
           append_body: true
