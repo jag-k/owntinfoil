@@ -59,8 +59,12 @@ jobs:
           echo "is_tag=$is_tag" >> $GITHUB_OUTPUT
           echo "is_release=$is_release" >> $GITHUB_OUTPUT
 
-      - name: Lint
-        run: poetry run pre-commit run --all-files
+      - name: Run Ruff
+        run: poetry run ruff check --output-format=github .
+
+      - name: Run pre-commit hooks
+        run: poetry run pre-commit run --all-files --show-diff-on-failure
+
 
   build:
     needs:
@@ -93,7 +97,6 @@ jobs:
             type=semver,pattern={{major}},value=${{ jobs.lint.outputs.version }},enabled=${{ jobs.lint.outputs.is_release }}
             type=raw,value=latest,enable={{is_default_branch}}
 
-
       - name: Build and push Docker image
         id: docker_build
         uses: docker/build-push-action@v3
@@ -101,32 +104,6 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Docker image
-        id: docker_build
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.slug.outputs.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ jobs.lint.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build and push Docker image
-        id: docker_build
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.slug.outputs.sha }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ jobs.lint.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -143,6 +120,7 @@ jobs:
         if: ${{ jobs.lint.outputs.is_pr }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
           script: |
             const version = "${{ jobs.lint.outputs.version }}"
             const tagMessage = `Release version ${version}`

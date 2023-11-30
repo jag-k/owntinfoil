@@ -12,6 +12,7 @@ jobs:
         uses: actions/github-script@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
           script: |
             const { data: pullRequest } = await github.pulls.get({
               owner: context.repo.owner,
@@ -20,17 +21,22 @@ jobs:
             });
 
             const labels = pullRequest.labels.map(label => label.name);
-            const validLabels = ['breaking-change', 'enhancement', 'bug'];
-            const hasValidLabel = labels.some(label => validLabels.includes(label));
+            const invalidLabels = ['feature request', 'invalid', 'question'];
+            const hasInvalidLabel = labels.some(label => invalidLabels.includes(label));
 
-            if (!hasValidLabel) {
-              core.setFailed('Pull request must have one of the following labels: breaking-change, enhancement, bug');
+            if (labels.length === 0) {
+              core.setFailed('Pull request must have at least one label');
+            }
+
+            if (!hasInvalidLabel) {
+              core.setFailed('Pull request must have an invalid label: ' + invalidLabels.join(', '));
             }
 
       - name: Check assignees
         uses: actions/github-script@v3
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
           script: |
             const { data: pullRequest } = await github.pulls.get({
               owner: context.repo.owner,
@@ -40,6 +46,22 @@ jobs:
 
             if (pullRequest.assignees.length === 0) {
               core.setFailed('Pull request must have an assignee');
+            }
+
+      - name: Check draft status
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
+          script: |
+            const { data: pullRequest } = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            if (pullRequest.draft) {
+              core.setFailed('Pull request must not be a draft');
             }
 
   lint-code:
@@ -62,5 +84,5 @@ jobs:
       - name: Run Ruff
         run: poetry run ruff check --output-format=github .
 
-      - name: Run pre-commit
+      - name: Run pre-commit hooks
         run: poetry run pre-commit run --all-files --show-diff-on-failure
