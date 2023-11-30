@@ -1,9 +1,10 @@
 import os
+from pathlib import Path
 
 from config import NPS_DIR, SUCCESS_MESSAGE
 
 
-def _normalize_path(path: str) -> str:
+def _normalize_path(path: Path | str) -> str:
     """Normalize path"""
     return "../" + str(path).lstrip(".").lstrip("/").lstrip("\\")
 
@@ -13,17 +14,18 @@ def generate_tfl_file(path: str = NPS_DIR, message: str = SUCCESS_MESSAGE) -> di
     files_result: list[dict] = []
     dirs_result: set[str] = set()
     for _dirname, dirs, files in os.walk(path):
-        dirname = os.path.relpath(_dirname, path)
+        _dirname = Path(_dirname)
+        dirname = _dirname.relative_to(path)
         for d in dirs:
-            dirs_result.add(os.path.join(dirname, d))
+            dirs_result.add(str(dirname / d))
         for f in files:
             if f.endswith(".part"):
                 continue
             files_result.append(
                 {
-                    "url": _normalize_path(os.path.join(dirname, f)),
-                    "size": os.path.getsize(os.path.join(_dirname, f)),
-                }
+                    "url": _normalize_path(dirname / f),
+                    "size": (_dirname / f).stat().st_size,
+                },
             )
     return {
         "files": files_result,

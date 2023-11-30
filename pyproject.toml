@@ -1,13 +1,19 @@
 [tool.poetry]
-name = "tinfoil"
-version = "0.2.0"
+name = "owntinfoil"
+version = "0.2.1"
 description = ""
-authors = ["jag-k"]
+authors = ["jag-k <me@jagk.dev>"]
+maintainers = ["jag-k <me@jagk.dev>"]
 license = "MIT"
 readme = "README.md"
+homepage = "https://github.com/jag-k/owntinfoil"
+repository = "https://github.com/jag-k/owntinfoil"
+documentation = "https://github.com/jag-k/owntinfoil/wiki"
+keywords = ["tinfoil", "owntinfoil", "nintendo-switch"]
+packages = []
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.12"
 python-dotenv = "^1.0.0"
 aiohttp = "^3.9.1"
 aiofile = "^3.8.5"
@@ -22,36 +28,47 @@ ruff-lsp = "^0.0.45"
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
-line-length = 120
-include = '\.pyi?$'
-exclude = '''
-/(
-    \.git
-  | \.hg
-  | \.mypy_cache
-  | \.pytest_cache
-  | \.tox
-  | \.venv
-)/
-'''
-
-
 [tool.ruff]
 line-length = 120
 preview = true
 target-version = "py311"
-exclude = ["*locales*"]
+
+[tool.ruff.lint]
 select = [
-    "E", # pyflakes
-    "F", # pycodestyle errors
+    "F", # pyflakes
+    "E", # pycodestyle errors
     "W", # pycodestyle warnings
-    "UP", # pyupgrade
     "I", # isort
+    "N", # pep8-naming
+    "UP", # pyupgrade
+    "YTT", # flake8-2020
+    # "ANN", # flake8-annotations
+    "ASYNC", # flake8-async
+    "TRIO", # flake8-trio
+    "S", # flake8-bandit
+    "B", # flake8-bugbear
+    "A", # flake8-builtins
+    "COM", # flake8-commas
     "C4", # flake8-comprehensions
-    # pytest
-    "PT018", # Assertion should be broken down into multiple parts
-    "PT022", # No teardown in fixture {name}, use return instead of yield
+    "ICN", # flake8-import-conventions
+    "G", # flake8-logging-format
+    "INP", # flake8-no-pep420
+    "PIE", # flake8-pie
+    "PYI", # flake8-pyi
+    "RSE", # flake8-raise
+    "RET", # flake8-return
+    "SIM", # flake8-simplify
+    "TCH", # flake8-type-checking
+    "INT", # flake8-gettext
+    "PTH", # flake8-use-pathlib
+    "TD", # flake8-todos
+    "ERA", # eradicate
+    "PGH", # pygrep-hooks
+    "PL", # PyLint
+    "FLY", # flynt
+    "PERF", # Perflint
+
+    "RUF", # ruff
 ]
 ignore = ["E501"]
 

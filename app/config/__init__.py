@@ -1,3 +1,4 @@
+import contextlib
 import os
 from pathlib import Path
 
@@ -5,11 +6,8 @@ from dotenv import load_dotenv
 
 from app.config.base import *
 
-try:
+with contextlib.suppress(ImportError):
     from app.config.local import *
-
-except ImportError:
-    pass
 
 load_dotenv()
 
@@ -37,3 +35,6 @@ for key, user_and_password in os.environ.items():
         HTTP_AUTH_USERS[user] = password
     except ValueError:
         continue
+
+if BOT_KEY is None:
+    raise ValueError("BOT_KEY must be set!")
