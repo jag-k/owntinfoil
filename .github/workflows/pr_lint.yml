@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, labeled, unlabeled, assigned, unassigned]
 
 jobs:
-  validate:
+  validate-pr:
     runs-on: ubuntu-latest
     steps:
       - name: Check labels
@@ -42,10 +42,8 @@ jobs:
               core.setFailed('Pull request must have an assignee');
             }
 
-  lint:
+  lint-code:
     runs-on: ubuntu-latest
-    needs:
-      - validate
 
     steps:
       - name: Checkout repository
