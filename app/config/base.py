@@ -14,3 +14,15 @@ SUCCESS_MESSAGE: str = (
 
 HOST: str = "0.0.0.0"
 PORT: int = 8080
+
+__all__ = (
+    "BASE_PATH",
+    "NPS_DIR",
+    "TORRENT_DIR",
+    "BOT_KEY",
+    "BOT_URL",
+    "OVERRIDE_TORRENTS",
+    "SUCCESS_MESSAGE",
+    "HOST",
+    "PORT",
+)
