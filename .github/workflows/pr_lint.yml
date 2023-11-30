@@ -1,0 +1,68 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, labeled, unlabeled, assigned, unassigned]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check labels
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pullRequest } = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            const labels = pullRequest.labels.map(label => label.name);
+            const validLabels = ['breaking-change', 'enhancement', 'bug'];
+            const hasValidLabel = labels.some(label => validLabels.includes(label));
+
+            if (!hasValidLabel) {
+              core.setFailed('Pull request must have one of the following labels: breaking-change, enhancement, bug');
+            }
+
+      - name: Check assignees
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: pullRequest } = await github.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+
+            if (pullRequest.assignees.length === 0) {
+              core.setFailed('Pull request must have an assignee');
+            }
+
+  lint:
+    runs-on: ubuntu-latest
+    needs:
+      - validate
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install poetry
+        run: pipx install poetry
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'poetry'
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Run Ruff
+        run: poetry run ruff check --output-format=github .
+
+      - name: Run pre-commit
+        run: poetry run pre-commit run --all-files --show-diff-on-failure
