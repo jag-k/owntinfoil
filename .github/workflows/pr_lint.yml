@@ -2,14 +2,13 @@ name: PR Validation
 
 on:
   pull_request:
-    types: [opened, synchronize, labeled, unlabeled, assigned, unassigned]
 
 jobs:
   validate-pr:
     runs-on: ubuntu-latest
     steps:
       - name: Check labels
-        uses: actions/github-script@v3
+        uses: actions/github-script@v5
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
@@ -33,7 +32,7 @@ jobs:
             }
 
       - name: Check assignees
-        uses: actions/github-script@v3
+        uses: actions/github-script@v5
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
@@ -49,7 +48,7 @@ jobs:
             }
 
       - name: Check draft status
-        uses: actions/github-script@v3
+        uses: actions/github-script@v5
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
