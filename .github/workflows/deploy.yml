@@ -13,6 +13,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   build:
@@ -40,6 +41,7 @@ jobs:
         id: get_version
         run: |
           echo "version=$(grep -E '^\[tool\.poetry\]$' -A 4 pyproject.toml | grep -E '^version' | sed 's/version = "//;s/"$//')" >> $GITHUB_OUTPUT
+
       - name: Get short SHA
         id: slug
         run: echo "sha=$(echo ${GITHUB_SHA} | cut -c1-7)" >> $GITHUB_OUTPUT
@@ -67,3 +69,5 @@ jobs:
           tag_name: v${{ steps.get_version.outputs.version }}
           generate_release_notes: true
           append_body: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
