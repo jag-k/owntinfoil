@@ -21,7 +21,7 @@ aiohttp-basicauth = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.5.0"
-ruff = "^0.1.6"
+ruff = "^0.2.2"
 ruff-lsp = "^0.0.45"
 
 [build-system]
