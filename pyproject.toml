@@ -20,7 +20,7 @@ aiofile = "^3.8.5"
 aiohttp-basicauth = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
-pre-commit = "^3.5.0"
+pre-commit = "^3.6.2"
 ruff = "^0.1.6"
 ruff-lsp = "^0.0.45"
 
