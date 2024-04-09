@@ -133,11 +133,42 @@ jobs:
             ${{ runner.os }}-buildx-
 
       - name: Build Docker image
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v5
+        id: docker_image
         with:
           context: .
           push: false
-          tags: user/app:pr-${{ github.event.pull_request.number }}
+          load: true
+          tags: pr-${{ github.event.pull_request.number }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
           platforms: linux/amd64,linux/arm64,linux/arm/v7
+
+      - name: Get Docker image info
+        id: get_info
+        run: |
+          IMAGE_INFO=$(docker inspect ${{ steps.docker_image.outputs.imageid }} | jq -r '{id: .[0].Id, created: .[0].Created, size: .[0].Size, repoTags: .[0].RepoTags[0]}')
+          echo "info=$IMAGE_INFO"  >> "$GITHUB_OUTPUT"
+          echo "Info: $IMAGE_INFO"
+
+      - name: Post image info to PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # language=JavaScript
+          script: |
+            const issue_number = context.issue.number;
+            const image_info = JSON.parse("${{ steps.get_info.outputs.info }}");
+            const message = (
+              `The Docker image information is as follows:\n\n`
+              `- ID: ${image_info.id}\n`
+              `- Created: ${image_info.created}\n`
+              `- Size: ${image_info.size}\n`
+              `- Tag(s): ${image_info.repoTags}\n`
+            );
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: message
+            });
