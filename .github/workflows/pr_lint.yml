@@ -178,7 +178,7 @@ jobs:
           image: ${{ steps.meta.outputs.tags }}
           to-latest: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-user: ${{ secrets.DOCKERHUB_USERNAME }}
           dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
-          registry-username: ${{ github.actor }}
+          registry-user: ${{ github.actor }}
           registry-password: ${{ secrets.GITHUB_TOKEN }}
