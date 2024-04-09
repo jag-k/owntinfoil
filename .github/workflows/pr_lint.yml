@@ -3,6 +3,10 @@ name: PR Validation
 on:
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   validate-labels:
     runs-on: ubuntu-latest
@@ -124,6 +128,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4.4.0
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          labels: |
+            org.opencontainers.image.revision=${{ env.SHA }}
+          tags: |
+            type=sha,prefix=,suffix=,format=short
+
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
@@ -134,41 +148,27 @@ jobs:
 
       - name: Build Docker image
         uses: docker/build-push-action@v5
-        id: docker_image
+        id: build-and-push
         with:
           context: .
           push: false
-          load: true
-          tags: pr-${{ github.event.pull_request.number }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
           platforms: linux/amd64,linux/arm64,linux/arm/v7
 
-      - name: Get Docker image info
-        id: get_info
-        run: |
-          IMAGE_INFO=$(docker inspect ${{ steps.docker_image.outputs.imageid }} | jq -r '{id: .[0].Id, created: .[0].Created, size: .[0].Size, repoTags: .[0].RepoTags[0]}')
-          echo "info=$IMAGE_INFO"  >> "$GITHUB_OUTPUT"
-          echo "Info: $IMAGE_INFO"
-
-      - name: Post image info to PR
-        uses: actions/github-script@v7
+      - name: Docker Scout
+        id: docker-scout
+        uses: docker/scout-action@v1
         with:
+          command: cves,recommendations,compare
+          to-latest: true
+          ignore-base: true
+          only-fixed: true
+          image: ${{ steps.meta.outputs.tags }}
+          to: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.COMPARE_TAG }}
+          ignore-unchanged: true
+          only-severities: critical,high
+          write-comment: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          # language=JavaScript
-          script: |
-            const issue_number = context.issue.number;
-            const image_info = JSON.parse("${{ steps.get_info.outputs.info }}");
-            const message = (
-              `The Docker image information is as follows:\n\n`
-              `- ID: ${image_info.id}\n`
-              `- Created: ${image_info.created}\n`
-              `- Size: ${image_info.size}\n`
-              `- Tag(s): ${image_info.repoTags}\n`
-            );
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: issue_number,
-              body: message
-            });
