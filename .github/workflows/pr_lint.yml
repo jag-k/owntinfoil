@@ -6,9 +6,6 @@ on:
 jobs:
   validate-labels:
     runs-on: ubuntu-latest
-    concurrency:
-      group: validate-pr
-      cancel-in-progress: true
     steps:
       - name: Check labels
         uses: actions/github-script@v7
@@ -74,9 +71,6 @@ jobs:
 
   validate-code:
     runs-on: ubuntu-latest
-    concurrency:
-      group: validate-pr
-      cancel-in-progress: true
     outputs:
       version: ${{ steps.get_version.outputs.version }}
     steps:
@@ -104,9 +98,25 @@ jobs:
         run: |
           echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
 
+  validate-branch:
+    runs-on: ubuntu-latest
+    needs:
+      - validate-code
+    if: startsWith(github.head_ref, 'release/')
+    steps:
+      - name: Check branch name with version
+        run: |
+          # Extract the branch name from the GitHub context
+          branch_name=${{ github.head_ref }}
+
+          # Check if the branch name starts with "release/" and does not match the version
+          if [[ $branch_name == release/* && $branch_name != "release/${{ needs.validate-code.outputs.version }}" ]]; then
+            echo "Branch name does not match the version in pyproject.toml"
+            exit 1
+          fi
+
   validate-docker-build:
     runs-on: ubuntu-latest
-    needs: validate-code
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -131,23 +141,3 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache
           platforms: linux/amd64,linux/arm64,linux/arm/v7
-
-  validate-branch:
-    runs-on: ubuntu-latest
-    needs:
-      - validate-code
-    concurrency:
-      group: validate-pr
-      cancel-in-progress: true
-    if: startsWith(github.head_ref, 'release/')
-    steps:
-      - name: Check branch name with version
-        run: |
-          # Extract the branch name from the GitHub context
-          branch_name=${{ github.head_ref }}
-
-          # Check if the branch name starts with "release/" and does not match the version
-          if [[ $branch_name == release/* && $branch_name != "release/${{ needs.validate-code.outputs.version }}" ]]; then
-            echo "Branch name does not match the version in pyproject.toml"
-            exit 1
-          fi
