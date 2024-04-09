@@ -17,12 +17,12 @@ PORT: int = 8080
 
 __all__ = (
     "BASE_PATH",
-    "NPS_DIR",
-    "TORRENT_DIR",
     "BOT_KEY",
     "BOT_URL",
-    "OVERRIDE_TORRENTS",
-    "SUCCESS_MESSAGE",
     "HOST",
+    "NPS_DIR",
+    "OVERRIDE_TORRENTS",
     "PORT",
+    "SUCCESS_MESSAGE",
+    "TORRENT_DIR",
 )

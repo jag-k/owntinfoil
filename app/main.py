@@ -67,12 +67,11 @@ async def run():
 
 
 def main():
-    loop = asyncio.get_event_loop()
     # noinspection HttpUrlsUsage
     print(f"Server started at http://{HOST}:{PORT}", file=sys.stderr)
     print("Press CTRL+C to exit", file=sys.stderr)
     try:
-        loop.run_until_complete(run())
+        asyncio.run(run())
     except KeyboardInterrupt:
         print("Exiting...", file=sys.stderr)
 

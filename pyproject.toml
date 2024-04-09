@@ -14,15 +14,15 @@ packages = []
 
 [tool.poetry.dependencies]
 python = "^3.12"
-python-dotenv = "^1.0.0"
-aiohttp = "^3.9.1"
+python-dotenv = "^1.0.1"
+aiohttp = "^3.9.3"
 aiofile = "^3.8.5"
 aiohttp-basicauth = "^1.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.5.0"
-ruff = "^0.1.6"
-ruff-lsp = "^0.0.45"
+ruff = "*"
+ruff-lsp = "*"
 
 [build-system]
 requires = ["poetry-core"]
@@ -70,7 +70,7 @@ select = [
 
     "RUF", # ruff
 ]
-ignore = ["E501"]
+ignore = ["E501", "COM812"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F403", "F405"]
