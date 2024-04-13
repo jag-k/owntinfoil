@@ -139,7 +139,7 @@ jobs:
             })
 
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           body: |
             Docker image: [`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}`](https://github.com/jag-k/owntinfoil/pkgs/container/owntinfoil/${{ steps.docker_build.outputs }}?tag=${{ steps.get_version.outputs.version }})
