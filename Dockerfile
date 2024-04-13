@@ -1,4 +1,4 @@
-FROM python:3.12-slim as base
+FROM --platform=$BUILDPLATFORM python:3.12-slim as base
 
 LABEL org.opencontainers.image.source="https://github.com/jag-k/owntinfoil"
 LABEL org.opencontainers.image.description="OwnTinfoil Image"

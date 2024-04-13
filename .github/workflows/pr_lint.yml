@@ -4,7 +4,7 @@ on:
   pull_request:
 
 jobs:
-  validate-pr:
+  validate-labels:
     runs-on: ubuntu-latest
     steps:
       - name: Check labels
@@ -13,7 +13,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
           script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
+            const {
+              data: pullRequest
+            } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
@@ -37,7 +39,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
           script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
+            const {
+              data: pullRequest
+            } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
@@ -53,7 +57,9 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
           script: |
-            const { data: pullRequest } = await github.rest.pulls.get({
+            const {
+              data: pullRequest
+            } = await github.rest.pulls.get({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: context.issue.number
@@ -96,7 +102,6 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - validate-code
-
     if: startsWith(github.head_ref, 'release/')
     steps:
       - name: Check branch name with version
@@ -109,3 +114,48 @@ jobs:
             echo "Branch name does not match the version in pyproject.toml"
             exit 1
           fi
+
+  validate-docker-build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      packages: read
+    strategy:
+      matrix:
+        platform: [linux/amd64, linux/arm64, linux/arm/v7]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+          tags: |
+            type=sha,prefix=,suffix=,format=short
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ matrix.platform }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-${{ matrix.platform }}-
+
+      - name: Build Docker image for ${{ matrix.platform }}
+        uses: docker/build-push-action@v5
+        id: build-and-push
+        with:
+          context: .
+          push: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          platforms: ${{ matrix.platform }}

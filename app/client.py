@@ -75,7 +75,7 @@ class URL:
                     print(f"Server disconnected for file {self.name!r}, retrying...", file=sys.stderr)
                     retries -= 1
             print(f"Failed to download file {self.name!r} after {original_retries} retries!", file=sys.stderr)
-            return None
+            return b""
 
     @staticmethod
     def normalize_name(name: str) -> str:
