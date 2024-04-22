@@ -15,7 +15,7 @@ packages = []
 [tool.poetry.dependencies]
 python = "^3.12"
 python-dotenv = "^1.0.1"
-aiohttp = "^3.9.3"
+aiohttp = "^3.9.5"
 aiofile = "^3.8.5"
 aiohttp-basicauth = "^1.0.0"
 
