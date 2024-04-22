@@ -6,9 +6,9 @@ repos:
   hooks:
     - id: sync_with_poetry
 
-- repo: https://github.com/charliermarsh/ruff-pre-commit
+- repo: https://github.com/astral-sh/ruff-pre-commit
   # Ruff version.
-  rev: 'v0.3.5'
+  rev: 'v0.4.1'
   hooks:
     # Run the linter.
     - id: ruff
