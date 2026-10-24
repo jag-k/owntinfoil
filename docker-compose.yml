@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   own-tinfoil:
     image: ghcr.io/jag-k/owntinfoil:latest
@@ -9,9 +7,13 @@ services:
       - ./TORRENTdir:/torrents
     ports:
       - "8080:8080"
+    # Load shop authentication and other optional settings from .env.
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - BOT_KEY= # optional
-      - BOT_URL=
+      - BOT_KEY=${BOT_KEY:-} # optional; enable bot sync together with BOT_URL
+      - BOT_URL=${BOT_URL:-}
     restart: unless-stopped
 
   transmission:
@@ -22,11 +24,11 @@ services:
       - PGID=1000
       - TZ=Etc/UTC
       - TRANSMISSION_WEB_HOME= #optional
+      # - HOST_WHITELIST= #optional
       - USER= #optional
       - PASS= #optional
       - WHITELIST= #optional
       - PEERPORT= #optional
-#      - HOST_WHITELIST= #optional
     volumes:
       - ./NPSdir:/downloads/complete
       - ./TORRENTdir:/watch

@@ -34,19 +34,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.12'
-          cache: 'poetry'
+          version: "0.13.5"
+          enable-cache: true
       - name: Install dependencies
-        run: poetry install
+        run: uv sync --locked
 
       - name: Get version from pyproject.toml
         id: get_version
         run: |
-          echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
+          echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
 
       - name: Is it a releasable?
         id: release
@@ -55,15 +53,23 @@ jobs:
           is_tag="${{ startsWith(github.ref, 'refs/tags/') }}"
           [[ "$is_pr" == "true" || "$is_tag" == "true" ]] && is_release=true || is_release=false
 
-          echo "is_pr=$is_pr" >> $GITHUB_OUTPUT
-          echo "is_tag=$is_tag" >> $GITHUB_OUTPUT
-          echo "is_release=$is_release" >> $GITHUB_OUTPUT
+          {
+            echo "is_pr=$is_pr"
+            echo "is_tag=$is_tag"
+            echo "is_release=$is_release"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Run Ruff
-        run: poetry run ruff check --output-format=github .
+        run: uv run --locked ruff check --output-format=github .
 
-      - name: Run pre-commit hooks
-        run: poetry run pre-commit run --all-files --show-diff-on-failure
+      - name: Run ty
+        run: uv run --locked ty check
+
+      - name: Run tests
+        run: uv run --locked python -m unittest discover -s tests -v
+
+      - name: Run prek hooks
+        run: uv run --locked prek run --all-files --show-diff-on-failure
 
 
   build:
@@ -111,14 +117,15 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-    if: ${{ needs.lint.outputs.is_release }}
+    if: ${{ needs.lint.outputs.is_release == 'true' }}
     needs:
+      - lint
       - build
     steps:
       - name: Create Tag
         id: create_tag
         uses: actions/github-script@v7
-        if: ${{ needs.lint.outputs.is_pr }}
+        if: ${{ needs.lint.outputs.is_pr == 'true' }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # language=JavaScript
@@ -143,7 +150,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           body: |
-            Docker image: [`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.get_version.outputs.version }}`](https://github.com/jag-k/owntinfoil/pkgs/container/owntinfoil/${{ steps.docker_build.outputs }}?tag=${{ steps.get_version.outputs.version }})
-          tag_name: v${{ steps.get_version.outputs.version }}
+            Docker image: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.lint.outputs.version }}`
+          tag_name: v${{ needs.lint.outputs.version }}
           generate_release_notes: true
           append_body: true

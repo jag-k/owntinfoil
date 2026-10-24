@@ -1,50 +1,53 @@
 import asyncio
 import json
 import sys
-import warnings
 
 from aiohttp import web
 from aiohttp_basicauth import BasicAuthMiddleware
 
 from app.client import Client
-from app.config import HOST, HTTP_AUTH_USERS, NPS_DIR, PORT
+from app.config import settings
 from app.generate_tfl import generate_tfl_file
 
 
 class BasicAuth(BasicAuthMiddleware):
-    async def check_credentials(self, username: str, password: str, request):  # noqa: PLR6301
-        return password == HTTP_AUTH_USERS.get(username)
+    async def check_credentials(self, username: str, password: str, request):  # ruff: ignore[no-self-use]
+        expected = settings.http_auth_users.get(username)
+        return expected is not None and password == expected.get_secret_value()
 
 
-async def redirect(_: web.Request) -> web.Response:
-    return web.HTTPFound("/shop.tfl")
+async def redirect(_: web.Request) -> web.Response:  # ruff: ignore[unused-async]
+    raise web.HTTPFound("/shop.tfl")
 
 
-async def handler(_: web.Request) -> web.Response:
+async def handler(_: web.Request) -> web.Response:  # ruff: ignore[unused-async]
     data = json.dumps(generate_tfl_file())
     return web.Response(text=data, content_type="application/json", charset="utf-8")
 
 
 async def periodic_request():
+    if not settings.bot_url or not settings.bot_key.get_secret_value():
+        print("Bot sync disabled: set both BOT_URL and BOT_KEY to enable it.", file=sys.stderr)
+        return
     client = Client()
     async with client:
         while True:
             await client.parse_and_save(True)
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(5)
 
 
 async def prepare_server(host: str, port: int) -> tuple[web.TCPSite, web.AppRunner]:
+    settings.ensure_directories()
     app = web.Application()
     app.add_routes(
         [
             web.get("/", redirect),
             web.get("/shop.tfl", handler),
-            web.static("/", NPS_DIR, follow_symlinks=True),
+            web.static("/", settings.nps_dir, follow_symlinks=True),
         ],
     )
-    if HTTP_AUTH_USERS:
+    if settings.http_auth_users:
         app.middlewares.append(BasicAuth())
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
     runner = web.AppRunner(app)
     await runner.setup()
     site = web.TCPSite(runner, host, port)
@@ -53,12 +56,11 @@ async def prepare_server(host: str, port: int) -> tuple[web.TCPSite, web.AppRunn
 
 async def run_server(site: web.TCPSite):
     await site.start()
-    while True:
-        await asyncio.sleep(3600)
+    await asyncio.Event().wait()
 
 
 async def run():
-    site, runner = await prepare_server(HOST, PORT)
+    site, runner = await prepare_server(settings.host, settings.port)
     try:
         await asyncio.gather(run_server(site), periodic_request())
     finally:
@@ -68,7 +70,7 @@ async def run():
 
 def main():
     # noinspection HttpUrlsUsage
-    print(f"Server started at http://{HOST}:{PORT}", file=sys.stderr)
+    print(f"Server started at http://{settings.host}:{settings.port}", file=sys.stderr)
     print("Press CTRL+C to exit", file=sys.stderr)
     try:
         asyncio.run(run())

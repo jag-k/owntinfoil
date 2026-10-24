@@ -1,25 +1,37 @@
-# See https://pre-commit.com for more information
-# See https://pre-commit.com/hooks.html for more hooks
 repos:
-- repo: https://github.com/floatingpurr/sync_with_poetry
-  rev: 1.1.0
-  hooks:
-    - id: sync_with_poetry
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
 
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  # Ruff version.
-  rev: 'v0.4.2'
-  hooks:
-    # Run the linter.
-    - id: ruff
-      args: [ --fix, --exit-non-zero-on-fix ]
-    # Run the formatter.
-    - id: ruff-format
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.13.5
+    hooks:
+      - id: uv-lock
+        args: [--check]
 
-- repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.6.0
-  hooks:
-  - id: trailing-whitespace
-  - id: end-of-file-fixer
-  - id: check-yaml
-  - id: check-added-large-files
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.2
+    hooks:
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+
+  - repo: https://github.com/astral-sh/ty-pre-commit
+    rev: v0.0.91
+    hooks:
+      - id: ty
+
+  - repo: https://github.com/jag-k/pydantic-settings-export
+    rev: v1.1.3
+    hooks:
+      - id: pydantic-settings-export
+        files: ^(app/config\.py|pyproject\.toml|docs/configuration\.md|\.env\.example)$
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint

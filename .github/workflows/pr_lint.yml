@@ -77,26 +77,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install poetry
-        run: pipx install poetry
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.12'
-          cache: 'poetry'
+          version: "0.13.5"
+          enable-cache: true
 
       - name: Install dependencies
-        run: poetry install
+        run: uv sync --locked
 
       - name: Run Ruff
-        run: poetry run ruff check --output-format=github .
+        run: uv run --locked ruff check --output-format=github .
 
-      - name: Run pre-commit hooks
-        run: poetry run pre-commit run --all-files --show-diff-on-failure
+      - name: Run ty
+        run: uv run --locked ty check
+
+      - name: Run tests
+        run: uv run --locked python -m unittest discover -s tests -v
+
+      - name: Run prek hooks
+        run: uv run --locked prek run --all-files --show-diff-on-failure
 
       - name: Get version from pyproject.toml
         id: get_version
         run: |
-          echo "version=$(poetry version -s)" >> $GITHUB_OUTPUT
+          echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
 
   validate-branch:
     runs-on: ubuntu-latest
@@ -105,12 +109,15 @@ jobs:
     if: startsWith(github.head_ref, 'release/')
     steps:
       - name: Check branch name with version
+        env:
+          BRANCH_NAME: ${{ github.head_ref }}
+          RELEASE_VERSION: ${{ needs.validate-code.outputs.version }}
         run: |
           # Extract the branch name from the GitHub context
-          branch_name=${{ github.head_ref }}
+          branch_name="$BRANCH_NAME"
 
           # Check if the branch name starts with "release/" and does not match the version
-          if [[ $branch_name == release/* && $branch_name != "release/${{ needs.validate-code.outputs.version }}" ]]; then
+          if [[ $branch_name == release/* && $branch_name != "release/$RELEASE_VERSION" ]]; then
             echo "Branch name does not match the version in pyproject.toml"
             exit 1
           fi
