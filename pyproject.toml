@@ -1,6 +1,6 @@
 [project]
 name = "owntinfoil"
-version = "0.2.1"
+version = "0.3.0"
 description = "OwnTinfoil HTTP shop and optional bot synchronization"
 requires-python = ">=3.12"
 authors = [{name = "jag-k", email = "me@jagk.dev"}]
