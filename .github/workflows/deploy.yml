@@ -132,13 +132,13 @@ jobs:
           script: |
             const version = "${{ needs.lint.outputs.version }}"
             const tagMessage = `Release version ${version}`
-            github.git.createRef({
+            await github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
               ref: `refs/tags/v${version}`,
               sha: context.sha
             })
-            github.repos.createRelease({
+            await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
               tag_name: `v${version}`,
